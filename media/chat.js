@@ -67,40 +67,87 @@
       });
     }
 
-    // Model Pill Toggle Popover
+    // Model Pill Toggle Popover & Live Model Fetch
+    const modelSearchInput = document.getElementById('modelSearchInput');
+    const dynamicModelsContainer = document.getElementById('dynamicModelsContainer');
+
+    function selectModelItem(modelId, name, tag) {
+      if (modelPopover) {
+        modelPopover.querySelectorAll('.popover-model-item').forEach(i => {
+          i.classList.remove('selected');
+          const check = i.querySelector('.model-checkmark');
+          if (check) check.textContent = '';
+        });
+      }
+      if (modelPillName) modelPillName.textContent = name;
+      if (modelPillTag) modelPillTag.textContent = tag || 'Model';
+      if (modelPopover) modelPopover.classList.add('hidden');
+      vscode.postMessage({ type: 'changeModel', payload: modelId });
+    }
+
     if (modelPill && modelPopover) {
       modelPill.addEventListener('click', (e) => {
         e.stopPropagation();
         if (contextMenu) contextMenu.classList.add('hidden');
+        const isOpening = modelPopover.classList.contains('hidden');
         modelPopover.classList.toggle('hidden');
+        if (isOpening) {
+          vscode.postMessage({ type: 'fetchLiveModels' });
+          if (modelSearchInput) {
+            setTimeout(() => modelSearchInput.focus(), 50);
+          }
+        }
       });
     }
 
-    // Model Selection in Popover
+    // Model Selection via Event Delegation
     if (modelPopover) {
-      modelPopover.querySelectorAll('.popover-model-item').forEach(item => {
-        item.addEventListener('click', () => {
-          const modelId = item.dataset.model;
-          const tag = item.dataset.tag || '';
-          const name = item.querySelector('.model-name')?.textContent || modelId;
+      modelPopover.addEventListener('click', (e) => {
+        const item = e.target.closest('.popover-model-item');
+        if (!item) return;
+        const modelId = item.dataset.model;
+        const tag = item.dataset.tag || '';
+        const name = item.querySelector('.model-name')?.textContent || modelId;
 
-          // Update active checkmarks
-          modelPopover.querySelectorAll('.popover-model-item').forEach(i => {
-            i.classList.remove('selected');
-            const check = i.querySelector('.model-checkmark');
-            if (check) check.textContent = '';
+        item.classList.add('selected');
+        const check = item.querySelector('.model-checkmark');
+        if (check) check.textContent = '✓';
+
+        selectModelItem(modelId, name, tag);
+      });
+    }
+
+    // Search or Custom Model Input
+    if (modelSearchInput) {
+      modelSearchInput.addEventListener('input', () => {
+        const query = modelSearchInput.value.toLowerCase().trim();
+        if (modelPopover) {
+          modelPopover.querySelectorAll('.popover-model-item').forEach(item => {
+            const name = item.querySelector('.model-name')?.textContent?.toLowerCase() || '';
+            const id = item.dataset.model?.toLowerCase() || '';
+            const match = !query || name.includes(query) || id.includes(query);
+            item.style.display = match ? 'flex' : 'none';
           });
-          item.classList.add('selected');
-          const check = item.querySelector('.model-checkmark');
-          if (check) check.textContent = '✓';
+        }
+      });
 
-          // Update Pill Display
-          if (modelPillName) modelPillName.textContent = name;
-          if (modelPillTag) modelPillTag.textContent = tag;
-
-          modelPopover.classList.add('hidden');
-          vscode.postMessage({ type: 'changeModel', payload: modelId });
-        });
+      modelSearchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const customId = modelSearchInput.value.trim();
+          if (customId) {
+            // Check if there is an exact or visible match
+            const firstVisible = Array.from(modelPopover.querySelectorAll('.popover-model-item')).find(i => i.style.display !== 'none');
+            if (firstVisible && modelSearchInput.value.length > 2) {
+              const modelId = firstVisible.dataset.model;
+              const tag = firstVisible.dataset.tag || '';
+              const name = firstVisible.querySelector('.model-name')?.textContent || modelId;
+              selectModelItem(modelId, name, tag);
+            } else {
+              const displayName = customId.split('/').pop() || customId;
+              selectModelItem(customId, displayName, 'Custom');
+            }
+          }
+        }
       });
     }
 
@@ -258,6 +305,29 @@
         break;
       case 'fileError':
         showNotification(`Error: ${message.payload.error}`, true);
+        break;
+      case 'liveModels':
+        if (dynamicModelsContainer && Array.isArray(message.payload)) {
+          const existingModels = new Set(
+            Array.from(document.querySelectorAll('.popover-model-item')).map(i => i.dataset.model)
+          );
+          const newModels = message.payload.filter(id => !existingModels.has(id));
+          if (newModels.length > 0) {
+            let html = '<div class="popover-divider"></div><div class="popover-section-label">All NVIDIA NIM Models (' + newModels.length + ')</div>';
+            newModels.forEach(mId => {
+              const shortName = mId.split('/').pop() || mId;
+              const tag = mId.includes('deepseek') ? 'Reasoning' : (mId.includes('nemotron') ? 'Flagship' : 'NIM');
+              html += `<div class="popover-model-item" data-model="${escapeHtml(mId)}" data-tag="${tag}">
+                <div class="model-item-title">
+                  <span class="model-name">${escapeHtml(shortName)}</span>
+                  <span class="model-subtag">${tag}</span>
+                </div>
+                <span class="model-checkmark"></span>
+              </div>`;
+            });
+            dynamicModelsContainer.innerHTML = html;
+          }
+        }
         break;
     }
   });

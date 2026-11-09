@@ -120,10 +120,15 @@ function getWebviewContent(webview, extensionUri) {
         </div>
       </div>
 
-      <!-- Model Selector Popover (Matches Screenshot) -->
+      <!-- Model Selector Popover -->
       <div id="modelPopover" class="model-popover hidden">
         <div class="popover-header">Model</div>
-        <div class="popover-models-list">
+        <div class="popover-search-container">
+          <input type="text" id="modelSearchInput" class="popover-search-input" placeholder="Search or type model ID..." />
+        </div>
+        <div class="popover-models-list" id="popoverModelsList">
+          <div class="popover-section-label">NVIDIA NIM Models</div>
+
           <div class="popover-model-item selected" data-model="nvidia/nemotron-3-ultra-550b-a55b" data-tag="Flagship">
             <div class="model-item-title">
               <span class="model-name">Nemotron 3 Ultra</span>
@@ -135,7 +140,79 @@ function getWebviewContent(webview, extensionUri) {
           <div class="popover-model-item" data-model="nvidia/nemotron-3-nano-omni-30b-a3b-reasoning" data-tag="Thinking">
             <div class="model-item-title">
               <span class="model-name">Nemotron 3 Reasoning</span>
-              <span class="model-subtag notice">Notice ⓘ</span>
+              <span class="model-subtag notice">Thinking</span>
+            </div>
+            <span class="model-checkmark"></span>
+          </div>
+
+          <div class="popover-model-item" data-model="nvidia/llama-3.1-nemotron-70b-instruct" data-tag="70B">
+            <div class="model-item-title">
+              <span class="model-name">Llama 3.1 Nemotron</span>
+              <span class="model-subtag">70B</span>
+            </div>
+            <span class="model-checkmark"></span>
+          </div>
+
+          <div class="popover-model-item" data-model="deepseek-ai/deepseek-r1" data-tag="Reasoning">
+            <div class="model-item-title">
+              <span class="model-name">DeepSeek R1</span>
+              <span class="model-subtag">Reasoning</span>
+            </div>
+            <span class="model-checkmark"></span>
+          </div>
+
+          <div class="popover-model-item" data-model="deepseek-ai/deepseek-v4.1-flash" data-tag="Fast">
+            <div class="model-item-title">
+              <span class="model-name">DeepSeek V4.1 Flash</span>
+              <span class="model-subtag">Fast</span>
+            </div>
+            <span class="model-checkmark"></span>
+          </div>
+
+          <div class="popover-model-item" data-model="deepseek-ai/deepseek-coder-6.7b-instruct" data-tag="Coding">
+            <div class="model-item-title">
+              <span class="model-name">DeepSeek Coder</span>
+              <span class="model-subtag">Coding</span>
+            </div>
+            <span class="model-checkmark"></span>
+          </div>
+
+          <div class="popover-model-item" data-model="meta/llama-3.3-70b-instruct" data-tag="General">
+            <div class="model-item-title">
+              <span class="model-name">Llama 3.3 70B</span>
+              <span class="model-subtag">General</span>
+            </div>
+            <span class="model-checkmark"></span>
+          </div>
+
+          <div class="popover-model-item" data-model="mistralai/mistral-large-2407" data-tag="Coding">
+            <div class="model-item-title">
+              <span class="model-name">Mistral Large 2</span>
+              <span class="model-subtag">Coding</span>
+            </div>
+            <span class="model-checkmark"></span>
+          </div>
+
+          <div class="popover-model-item" data-model="thudm/glm-5.3-flash" data-tag="Fast">
+            <div class="model-item-title">
+              <span class="model-name">GLM 5.3 Flash</span>
+              <span class="model-subtag">Fast</span>
+            </div>
+            <span class="model-checkmark"></span>
+          </div>
+
+          <div class="popover-model-item" data-model="moonshotai/kimi-k3.1-pro" data-tag="128k">
+            <div class="model-item-title">
+              <span class="model-name">Kimi K3.1 Pro</span>
+              <span class="model-subtag">128k</span>
+            </div>
+            <span class="model-checkmark"></span>
+          </div>
+
+          <div class="popover-model-item" data-model="qwen/qwen2.5-72b-instruct" data-tag="Coding">
+            <div class="model-item-title">
+              <span class="model-name">Qwen 2.5 72B</span>
+              <span class="model-subtag">Coding</span>
             </div>
             <span class="model-checkmark"></span>
           </div>
@@ -159,6 +236,8 @@ function getWebviewContent(webview, extensionUri) {
             </div>
             <span class="model-checkmark"></span>
           </div>
+
+          <div id="dynamicModelsContainer"></div>
         </div>
 
         <div class="popover-divider"></div>
@@ -617,6 +696,23 @@ async function handleApplyCodeBlock(filePath, code) {
   }
 }
 
+async function fetchLiveNvidiaModels(apiKey, baseUrl) {
+  try {
+    const url = `${baseUrl.replace(/\/+$/, '')}/models`;
+    const res = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Accept': 'application/json'
+      }
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.data || []).map(m => m.id);
+  } catch (err) {
+    return [];
+  }
+}
+
 async function callNVIDIA_API(messages, config, isStreaming = false) {
   const { apiKey, baseUrl, model, maxTokens, temperature } = config;
 
@@ -749,9 +845,26 @@ function activate(context) {
         }).catch(() => {});
       }
 
+      // Automatically fetch and populate live NVIDIA NIM models
+      const syncLiveModels = async () => {
+        const config = vscode.workspace.getConfiguration('antigravity-nvidia-chat');
+        const apiKey = config.get('apiKey');
+        const baseUrl = config.get('baseUrl') || 'https://integrate.api.nvidia.com/v1';
+        if (apiKey) {
+          const liveModels = await fetchLiveNvidiaModels(apiKey, baseUrl);
+          if (liveModels && liveModels.length > 0) {
+            panel.webview.postMessage({ type: 'liveModels', payload: liveModels });
+          }
+        }
+      };
+      syncLiveModels().catch(() => {});
+
       webviewView.webview.onDidReceiveMessage(async (message) => {
         try {
           switch (message.type) {
+            case 'fetchLiveModels':
+              await syncLiveModels();
+              break;
             case 'sendMessage':
               await handleSendMessage(context, message.payload);
               break;
