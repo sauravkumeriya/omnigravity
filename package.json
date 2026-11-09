@@ -4,6 +4,10 @@
   "description": "Drop-in chat extension for Antigravity IDE bringing DeepSeek R1, NVIDIA Nemotron, Llama 3.3, and local Ollama/LM Studio models with full session sync",
   "version": "1.0.1",
   "publisher": "local",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sauravkumeriya/omnigravity.git"
+  },
   "engines": {
     "vscode": "^1.80.0"
   },
