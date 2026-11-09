@@ -1,0 +1,9 @@
+# VSCode Extension Ignore
+**/.git
+**/.DS_Store
+**/*.log
+**/node_modules
+**/*.vsix
+*.map
+.vscode/*
+!vscode/extension.js

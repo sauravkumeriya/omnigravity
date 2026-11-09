@@ -1,0 +1,166 @@
+{
+  "name": "omnigravity",
+  "displayName": "OmniGravity — Open AI & DeepSeek for Antigravity IDE",
+  "description": "Drop-in chat extension for Antigravity IDE bringing DeepSeek R1, NVIDIA Nemotron, Llama 3.3, and local Ollama/LM Studio models with full session sync",
+  "version": "1.0.1",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "main": "./extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "categories": [
+    "AI",
+    "Chat"
+  ],
+  "keywords": [
+    "Antigravity",
+    "NVIDIA",
+    "NIM",
+    "DeepSeek",
+    "Nemotron",
+    "Chat"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "antigravity-nvidia-chat",
+          "title": "OmniGravity",
+          "icon": "resources/nvidia-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "antigravity-nvidia-chat": [
+        {
+          "type": "webview",
+          "id": "antigravity-nvidia-chat.panel",
+          "name": "OmniGravity",
+          "icon": "resources/nvidia-icon.svg"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "antigravity-nvidia-chat.newChat",
+        "title": "New Chat",
+        "category": "NVIDIA Chat",
+        "icon": "$(plus)"
+      },
+      {
+        "command": "antigravity-nvidia-chat.clearHistory",
+        "title": "Clear History",
+        "category": "NVIDIA Chat",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "antigravity-nvidia-chat.importSession",
+        "title": "Import Antigravity Session",
+        "category": "NVIDIA Chat",
+        "icon": "$(history)"
+      },
+      {
+        "command": "antigravity-nvidia-chat.addFileContext",
+        "title": "Add File to Context",
+        "category": "NVIDIA Chat",
+        "icon": "$(file)"
+      },
+      {
+        "command": "antigravity-nvidia-chat.addSelection",
+        "title": "Add Selection to Context",
+        "category": "NVIDIA Chat",
+        "icon": "$(edit)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "antigravity-nvidia-chat.importSession",
+          "group": "navigation",
+          "when": "view == antigravity-nvidia-chat.panel"
+        },
+        {
+          "command": "antigravity-nvidia-chat.newChat",
+          "group": "navigation",
+          "when": "view == antigravity-nvidia-chat.panel"
+        },
+        {
+          "command": "antigravity-nvidia-chat.clearHistory",
+          "group": "navigation",
+          "when": "view == antigravity-nvidia-chat.panel"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "antigravity-nvidia-chat.addSelection",
+          "group": "antigravity-nvidia-chat",
+          "when": "editorHasSelection"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "antigravity-nvidia-chat.addFileContext",
+          "group": "antigravity-nvidia-chat"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "antigravity-nvidia-chat.newChat",
+        "key": "ctrl+alt+n",
+        "mac": "cmd+alt+n",
+        "when": "view == antigravity-nvidia-chat.panel"
+      }
+    ],
+    "configuration": {
+      "title": "NVIDIA Chat",
+      "properties": {
+        "antigravity-nvidia-chat.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "NVIDIA NIM API Key",
+          "format": "password"
+        },
+        "antigravity-nvidia-chat.baseUrl": {
+          "type": "string",
+          "default": "https://integrate.api.nvidia.com/v1",
+          "description": "NVIDIA API Base URL"
+        },
+        "antigravity-nvidia-chat.defaultModel": {
+          "type": "string",
+          "default": "nvidia/nemotron-3-ultra-550b-a55b",
+          "description": "Default NVIDIA model",
+          "enum": [
+            "nvidia/nemotron-3-ultra-550b-a55b",
+            "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning"
+          ]
+        },
+        "antigravity-nvidia-chat.ollamaUrl": {
+          "type": "string",
+          "default": "http://localhost:11434",
+          "description": "Ollama API URL"
+        },
+        "antigravity-nvidia-chat.lmstudioUrl": {
+          "type": "string",
+          "default": "http://localhost:1234",
+          "description": "LM Studio API URL"
+        },
+        "antigravity-nvidia-chat.maxTokens": {
+          "type": "number",
+          "default": 8192,
+          "description": "Max tokens for responses"
+        },
+        "antigravity-nvidia-chat.temperature": {
+          "type": "number",
+          "default": 0.7,
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Temperature for generation"
+        }
+      }
+    }
+  }
+}
