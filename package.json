@@ -33,7 +33,7 @@
         {
           "id": "antigravity-nvidia-chat",
           "title": "OmniGravity",
-          "icon": "resources/nvidia-icon.svg"
+          "icon": "resources/sidebar-icon.svg"
         }
       ]
     },
@@ -43,7 +43,7 @@
           "type": "webview",
           "id": "antigravity-nvidia-chat.panel",
           "name": "OmniGravity",
-          "icon": "resources/nvidia-icon.svg"
+          "icon": "resources/sidebar-icon.svg"
         }
       ]
     },
