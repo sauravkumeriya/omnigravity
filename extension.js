@@ -821,7 +821,7 @@ function activate(context) {
   console.log('[Antigravity Chat] Extension activated');
 
   // Restore active conversation ID from state
-  activeConversationId = context.workspaceState.get('activeConversationId') || null;
+  activeConversationId = context.workspaceState.get('activeConversationId') || context.globalState.get('activeConversationId') || null;
 
   const viewProvider = {
     resolveWebviewView(webviewView) {
@@ -832,9 +832,18 @@ function activate(context) {
       };
       webviewView.webview.html = getWebviewContent(webviewView.webview, context.extensionUri);
 
-      // Auto restore previous messages if session was open
-      if (activeConversationId) {
-        loadAntigravityConversation(activeConversationId).then(loaded => {
+      // Auto restore previous messages or most recent Antigravity conversation
+      (async () => {
+        if (!activeConversationId) {
+          const convs = await listAntigravityConversations();
+          if (convs && convs.length > 0) {
+            activeConversationId = convs[0].conversation_id;
+            await context.workspaceState.update('activeConversationId', activeConversationId);
+            await context.globalState.update('activeConversationId', activeConversationId);
+          }
+        }
+        if (activeConversationId) {
+          const loaded = await loadAntigravityConversation(activeConversationId);
           if (loaded && loaded.messages.length > 0) {
             chatHistory = loaded.messages.slice();
             panel.webview.postMessage({ type: 'clearChat' });
@@ -842,8 +851,8 @@ function activate(context) {
               panel.webview.postMessage({ type: 'addMessage', payload: msg });
             }
           }
-        }).catch(() => {});
-      }
+        }
+      })().catch(err => console.error('[OmniGravity] Auto restore error:', err));
 
       // Automatically fetch and populate live NVIDIA NIM models
       const syncLiveModels = async () => {
@@ -896,6 +905,7 @@ function activate(context) {
             case 'loadConversation': {
               activeConversationId = message.payload.conversationId;
               await context.workspaceState.update('activeConversationId', activeConversationId);
+              await context.globalState.update('activeConversationId', activeConversationId);
               const loaded = await loadAntigravityConversation(activeConversationId);
               chatHistory = loaded.messages.slice();
               panel.webview.postMessage({ type: 'clearChat' });
@@ -996,6 +1006,7 @@ function activate(context) {
     vscode.commands.registerCommand('antigravity-nvidia-chat.newChat', async () => {
       activeConversationId = crypto.randomUUID();
       await context.workspaceState.update('activeConversationId', activeConversationId);
+      await context.globalState.update('activeConversationId', activeConversationId);
       chatHistory = [];
       fileContexts.clear();
       if (panel) {
@@ -1058,6 +1069,7 @@ async function handleSendMessage(context, userMessage) {
   if (!activeConversationId) {
     activeConversationId = crypto.randomUUID();
     await context.workspaceState.update('activeConversationId', activeConversationId);
+    await context.globalState.update('activeConversationId', activeConversationId);
   }
 
   // 1. Save user turn to in-memory history & webview

@@ -1,5 +1,5 @@
 {
-  "name": "omnigravity",
+  "name": "antigravity-nvidia-chat",
   "displayName": "OmniGravity — Open AI & DeepSeek for Antigravity IDE",
   "description": "Drop-in chat extension for Antigravity IDE bringing DeepSeek R1, NVIDIA Nemotron, Llama 3.3, and local Ollama/LM Studio models with full session sync",
   "version": "1.0.1",
